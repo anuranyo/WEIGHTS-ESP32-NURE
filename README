@@ -1,0 +1,272 @@
+### **📌 README **
+
+---
+### SET UP for DataBase
+
+## **📂 Models (`server/src/models/`)**
+The **models directory** contains **Mongoose schemas** for different collections in MongoDB. These schemas define the structure of the data stored in the database.
+
+### **📜 `User.js`**
+- Defines **users** who can register, log in, and connect to devices.
+- Fields:
+  - `username` – Unique name of the user.
+  - `email` – User's email address.
+  - `passwordHash` – Encrypted password.
+  - `devices` – List of `deviceId` values for connected devices.
+
+---
+
+### **📜 `Device.js`**
+- Represents **physical devices** connected to the system.
+- Fields:
+  - `deviceId` – Unique identifier (`YYYYMMDD-HHMM-CODE`).
+  - `createdAt` – Date and time when the device was added.
+  - `numScales` – Number of weight sensors.
+  - `owner` – Username of the device's owner.
+  - `allowedUsers` – List of users who can access the device.
+
+---
+
+### **📜 `Log.js`**
+- Stores **weight measurement logs** for each device.
+- Fields:
+  - `deviceId` – The device that sent the measurement.
+  - `timestamp` – Time of the measurement.
+  - `weights` – Object containing weight values for each sensor.
+
+---
+
+### **📜 `Limit.js`**
+- Stores **threshold limits** for notifications.
+- Fields:
+  - `deviceId` – The device to which the limits apply.
+  - `limits` – Object containing `min` and `max` weight values for each scale.
+
+---
+
+## **📂 Database Initialization & Cleanup (`server/src/db/`)**
+This directory contains scripts to **initialize** and **delete** the database.
+
+### **📜 `initDB.js`**
+- **Creates the required collections** (`users`, `devices`, `logs`, `limits`).
+- **Connects to MongoDB** using the connection string in `.env`.
+- **Does not insert test data** (only creates empty collections).
+
+#### **How to Run**
+```sh
+npm run init-db
+```
+
+---
+
+### **📜 `clearDB.js`**
+- **Drops the entire database** `"WEIGHTS-ESP32"`, removing all collections and data.
+- **Use with caution!** This action is irreversible.
+
+#### **How to Run**
+```sh
+npm run clear-db
+```
+
+---
+
+## **📂 MongoDB Connection String Format**
+**MongoDB Atlas**, the `.env` connection string should look like:
+```
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/WEIGHTS-ESP32
+```
+
+### **📌 API Documentation for the WEIGHTS-ESP32 Project**
+This document provides an overview of all available API endpoints for **user management, device management, logs, and weight limits**.
+
+---
+
+## **📂 API Structure**
+All endpoints are **under `/api/`**, and some require **JWT authentication**.
+
+| Entity  | Method | Endpoint                      | Description                           | Auth Required |
+|---------|--------|--------------------------------|--------------------------------------|--------------|
+| **Users** | `POST` | `/api/users/register`        | Register a new user                  | ❌ No        |
+|         | `POST` | `/api/users/login`           | Log in a user                        | ❌ No        |
+|         | `GET`  | `/api/users/profile`         | Get user profile                     | ✅ Yes       |
+| **Devices** | `GET`  | `/api/devices/`             | Get all devices for a user           | ✅ Yes       |
+|         | `POST` | `/api/devices/add`           | Add a new device                     | ✅ Yes       |
+| **Logs**    | `GET`  | `/api/logs/:deviceId`       | Get logs for a device                | ✅ Yes       |
+|         | `POST` | `/api/logs/add`              | Add a new log                        | ✅ Yes       |
+| **Limits**  | `GET`  | `/api/limits/:deviceId`    | Get weight limits for a device       | ✅ Yes       |
+|         | `POST` | `/api/limits/set`            | Set weight limits for a device       | ✅ Yes       |
+
+---
+
+## **1️⃣ User API**
+### **📌 Register a User**
+- **Endpoint:** `POST /api/users/register`
+- **Body:**
+  ```json
+  {
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "password123"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "User registered successfully",
+    "user": { "username": "john_doe", "email": "john@example.com" }
+  }
+  ```
+
+### **📌 Login a User**
+- **Endpoint:** `POST /api/users/login`
+- **Body:**
+  ```json
+  {
+    "email": "john@example.com",
+    "password": "password123"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Login successful",
+    "token": "jwt_token_here"
+  }
+  ```
+
+### **📌 Get User Profile**
+- **Endpoint:** `GET /api/users/profile`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Response:**
+  ```json
+  {
+    "username": "john_doe",
+    "email": "john@example.com",
+    "devices": ["20250227-0222-4"]
+  }
+  ```
+
+---
+
+## **2️⃣ Device API**
+### **📌 Get Devices for a User**
+- **Endpoint:** `GET /api/devices/`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Response:**
+  ```json
+  [
+    {
+      "deviceId": "20250227-0222-4",
+      "numScales": 4,
+      "owner": "john_doe",
+      "allowedUsers": ["john_doe"]
+    }
+  ]
+  ```
+
+### **📌 Add a New Device**
+- **Endpoint:** `POST /api/devices/add`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Body:**
+  ```json
+  {
+    "deviceId": "20250227-0222-4",
+    "numScales": 4
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Device added successfully",
+    "device": { "deviceId": "20250227-0222-4", "numScales": 4 }
+  }
+  ```
+
+---
+
+## **3️⃣ Log API**
+### **📌 Get Logs for a Device**
+- **Endpoint:** `GET /api/logs/:deviceId`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Response:**
+  ```json
+  [
+    {
+      "deviceId": "20250227-0222-4",
+      "timestamp": "2025-02-27T10:00:00Z",
+      "weights": {
+        "scale1": 10.5,
+        "scale2": 5.2,
+        "scale3": 7.8,
+        "scale4": 3.0
+      }
+    }
+  ]
+  ```
+
+### **📌 Add a New Log**
+- **Endpoint:** `POST /api/logs/add`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Body:**
+  ```json
+  {
+    "deviceId": "20250227-0222-4",
+    "weights": {
+      "scale1": 10.5,
+      "scale2": 5.2,
+      "scale3": 7.8,
+      "scale4": 3.0
+    }
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Log added successfully",
+    "log": { "deviceId": "20250227-0222-4", "weights": { ... } }
+  }
+  ```
+
+---
+
+## **4️⃣ Limit API**
+### **📌 Get Weight Limits for a Device**
+- **Endpoint:** `GET /api/limits/:deviceId`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Response:**
+  ```json
+  {
+    "deviceId": "20250227-0222-4",
+    "limits": {
+      "scale1": { "min": 2.0, "max": 15.0 },
+      "scale2": { "min": 1.0, "max": 10.0 },
+      "scale3": { "min": 3.5, "max": 12.0 },
+      "scale4": { "min": 0.5, "max": 8.0 }
+    }
+  }
+  ```
+
+### **📌 Set or Update Weight Limits**
+- **Endpoint:** `POST /api/limits/set`
+- **Headers:** `Authorization: Bearer jwt_token_here`
+- **Body:**
+  ```json
+  {
+    "deviceId": "20250227-0222-4",
+    "limits": {
+      "scale1": { "min": 2.0, "max": 15.0 },
+      "scale2": { "min": 1.0, "max": 10.0 },
+      "scale3": { "min": 3.5, "max": 12.0 },
+      "scale4": { "min": 0.5, "max": 8.0 }
+    }
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Limits updated successfully",
+    "limits": { "deviceId": "20250227-0222-4", "limits": { ... } }
+  }
+  ```
+
+---
