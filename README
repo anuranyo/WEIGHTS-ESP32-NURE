@@ -1,6 +1,5 @@
 ### **📌 README **
 
----
 ### SET UP for DataBase
 
 ## **📂 Models (`server/src/models/`)**
@@ -269,4 +268,3 @@ All endpoints are **under `/api/`**, and some require **JWT authentication**.
   }
   ```
 
----
